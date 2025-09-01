@@ -1,4 +1,5 @@
 scapy>=2.5.0
+requests>=2.31.0
 
 # Dépendances système :
 #   sudo apt-get install linuxptp python3-venv
