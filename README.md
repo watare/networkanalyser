@@ -61,10 +61,13 @@ pip install openai
 
 La clé ne doit jamais être committée dans le dépôt : le fichier `.env` est ignoré par Git.
 
-### Exemples d'utilisation
+## Utilisation du Makefile
+
+Avant d'exécuter ces commandes, assurez-vous que la variable d'environnement
+`OPENROUTER_API_KEY` est définie via `export` ou à l'aide d'un fichier `.env`.
 
 ```sh
-run-diagnostic "analyse des horloges PTP"
-logs
-chat "Quels paquets GOOSE sont suspects?"
+make run-diagnostic IFACE=eth0 DURATION=60
+make logs
+make chat
 ```
