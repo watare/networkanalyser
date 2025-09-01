@@ -14,7 +14,7 @@ BIN_NAME_IEC ?= iec61850-diag
 SCRIPT_SRC_IEC ?= iec61850_diag.py
 WRAPPER_IEC := $(PREFIX)/bin/$(BIN_NAME_IEC)
 
-.PHONY: all deps install uninstall check clean
+.PHONY: all deps install uninstall check clean run-diagnostic logs chat check-key
 
 all: install
 
@@ -74,3 +74,16 @@ check:
 
 clean:
 > echo "Nothing to clean."
+
+# IFACE et DURATION sont optionnelles
+run-diagnostic:
+> python cli_chat.py run-diagnostic IFACE=$(IFACE) DURATION=$(DURATION)
+
+logs:
+> python cli_chat.py logs
+
+chat:
+> python cli_chat.py chat
+
+check-key:
+> python cli_chat.py check-key
