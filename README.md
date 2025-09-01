@@ -13,6 +13,9 @@ Outils d'analyse réseau pour PTP et IEC 61850.
 sudo make install
 ```
 
+Cette commande installe `ptp-diag`, `iec61850-diag` ainsi que les utilitaires
+`ptp-logs` et `ptp-chat` qui utilisent le même environnement virtuel.
+
 ## Configuration
 
 Copiez le fichier `.env.example` vers `.env` puis définissez la clé API `OPENROUTER_API_KEY` :
@@ -34,6 +37,8 @@ Le fichier `.env` est utilisé par `cli_chat.py` et n'est pas commité dans le d
 ```sh
 sudo ptp-diag -i eth0
 sudo iec61850-diag -i eth0
+ptp-logs
+ptp-chat
 ```
 
 ## Intégration IA
@@ -66,21 +71,21 @@ La clé ne doit jamais être committée dans le dépôt : le fichier `.env` est
 ### Exemples d'utilisation
 
 ```sh
-python cli_chat.py run-diagnostic -i eth0
-python cli_chat.py logs
-python cli_chat.py chat
+ptp-diag -i eth0
+ptp-logs
+ptp-chat
 ```
 
 #### Exemple complet
 
 ```sh
 # 1. Lancer un diagnostic PTP et générer les logs
-python cli_chat.py run-diagnostic -i eth0 -t 30
+ptp-diag -i eth0 -t 30
 
 # 2. Afficher les logs
-python cli_chat.py logs
+ptp-logs
 
 # 3. Ouvrir une conversation avec le modèle
-python cli_chat.py chat
+ptp-chat
 > Quels paquets GOOSE sont suspects ?
 ```
