@@ -36,6 +36,13 @@ install: deps
 > sudo install -m 0755 "$(SCRIPT_SRC)" "$(APP_DIR)/ptp_diag.py"
 > echo "[install] Copying chat helper"
 > sudo install -m 0755 cli_chat.py "$(APP_DIR)/cli_chat.py"
+> if [ -f .env ]; then \
+>   echo "[install] Copying .env file"; \
+>   sudo cp .env "$(APP_DIR)/.env"; \
+>   sudo chmod 600 "$(APP_DIR)/.env"; \
+> else \
+>   echo "[install] No .env file found - create one in $(APP_DIR) if needed"; \
+> fi
 > echo "[install] Creating virtualenv for ptp"
 > sudo $(PYTHON) -m venv "$(APP_DIR)/venv"
 > echo "[install] Installing Python deps"

@@ -18,23 +18,37 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    # Try to load .env file from script directory first, then fallback to default
+    _ENV_FILE = Path(__file__).resolve().parent / ".env"
+    if not load_dotenv(_ENV_FILE):
+        load_dotenv()
+except ImportError:
+    # If python-dotenv is not available, skip .env loading
+    # Environment variables should still work
+    pass
+
 import requests
 
-# ---------- Environment / constants ----------
-
-_ENV_FILE = Path(__file__).resolve().parent / ".env"
-if not load_dotenv(_ENV_FILE):
-    load_dotenv()
-
-LOG_FILE = "diagnostic.log"
+LOG_FILE = Path(__file__).resolve().parent / "diagnostic.log"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s: %(message)s",
-)
+# Try to setup logging, fallback to /tmp if no write permission
+try:
+    logging.basicConfig(
+        filename=LOG_FILE,
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s: %(message)s",
+    )
+except PermissionError:
+    # Fallback to /tmp if we can't write to script directory
+    fallback_log = Path("/tmp") / "diagnostic.log" 
+    logging.basicConfig(
+        filename=fallback_log,
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s: %(message)s",
+    )
 
 
 # ---------- Helpers ----------
@@ -116,11 +130,85 @@ def query_model(prompt: str) -> str:
         raise RuntimeError("Réponse inattendue de l'API") from exc
 
 
+def get_diagnostic_context() -> str:
+    """Load recent diagnostic data to provide context for analysis."""
+    context_parts = []
+    
+    # Try to load diagnostic logs
+    try:
+        if os.path.exists(LOG_FILE) and os.path.getsize(LOG_FILE) > 0:
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
+                log_content = f.read()
+                # Get last 2000 chars to avoid token limits
+                if len(log_content) > 2000:
+                    log_content = "..." + log_content[-2000:]
+                context_parts.append(f"=== DIAGNOSTIC LOGS ===\n{log_content}")
+    except Exception as e:
+        context_parts.append(f"=== LOG ERROR ===\nCould not read diagnostic logs: {e}")
+    
+    # Try to get recent PTP diagnostic results from various locations
+    ptp_log_locations = [
+        Path(__file__).parent / "diagnostic.log",  # Same as LOG_FILE
+        Path("/tmp/diagnostic.log"),  # Fallback location
+        Path("/var/log/ptp-diag.log"),  # System log location
+        Path.home() / "ptp-diagnostic.log"  # User home
+    ]
+    
+    for log_path in ptp_log_locations:
+        try:
+            if log_path.exists() and log_path.stat().st_size > 0:
+                with open(log_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    if "ptp_diag" in content.lower() or "ptp" in content.lower():
+                        if len(content) > 1500:
+                            content = "..." + content[-1500:]
+                        context_parts.append(f"=== PTP DIAGNOSTIC DATA ({log_path.name}) ===\n{content}")
+                        break  # Use first found log
+        except Exception:
+            continue
+    
+    # Also try to capture live system PTP status if ptp4l/pmc available
+    try:
+        import subprocess
+        # Try to get current PTP status
+        result = subprocess.run(["pmc", "-u", "-b", "0", "GET TIME_STATUS_NP"], 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            context_parts.append(f"=== CURRENT PTP STATUS ===\n{result.stdout.strip()}")
+    except Exception:
+        pass
+    
+    if not context_parts:
+        context_parts.append("=== NO DIAGNOSTIC DATA ===\nNo recent diagnostic data found. Run 'sudo ptp-diag -i <interface>' first to generate data for analysis.")
+    
+    return "\n\n".join(context_parts)
+
+
 def chat() -> None:
-    """Simple REPL for chatting with the model."""
-    print("Chat CLI. Tapez 'exit' pour quitter.")
+    """Enhanced chat with automatic diagnostic context loading."""
+    print("Chat CLI PTP/IEC61850 - Assistant d'analyse réseau")
+    print("Chargement du contexte diagnostic...")
+    
     api_key = get_api_key()
-    print("API key loaded." if api_key else "OPENROUTER_API_KEY is not set.")
+    if not api_key:
+        print("OPENROUTER_API_KEY is not set.")
+        return
+        
+    # Load diagnostic context
+    diagnostic_context = get_diagnostic_context()
+    print("Contexte chargé. Tapez 'exit' pour quitter, 'context' pour voir les données chargées.")
+    
+    # Initial context message for the AI
+    system_context = f"""Tu es un expert en analyse de réseaux industriels, spécialisé en PTP (Precision Time Protocol) et IEC 61850.
+    
+Voici les données diagnostiques actuelles à analyser:
+
+{diagnostic_context}
+
+Analyse ces données et réponds aux questions de l'utilisateur en français. Si aucune donnée n'est disponible, guide l'utilisateur pour exécuter les bons diagnostics."""
+
+    conversation_history = [{"role": "system", "content": system_context}]
+    
     while True:
         try:
             prompt = input("> ")
@@ -129,11 +217,23 @@ def chat() -> None:
             break
         if prompt.strip().lower() in {"exit", "quit"}:
             break
+        if prompt.strip().lower() == "context":
+            print("\n" + "="*50)
+            print(diagnostic_context)
+            print("="*50 + "\n")
+            continue
         if not prompt.strip():
             continue
+            
+        # Add user message to conversation
+        conversation_history.append({"role": "user", "content": prompt})
+        
         try:
-            reply = query_model(prompt)
-        except Exception as exc:  # noqa: BLE001
+            # Use conversation history for better context
+            full_prompt = "\n".join([f"{msg['role']}: {msg['content']}" for msg in conversation_history[-5:]])  # Last 5 messages
+            reply = query_model(full_prompt)
+            conversation_history.append({"role": "assistant", "content": reply})
+        except Exception as exc:
             print(f"[Erreur] {exc}")
             continue
         print(reply)
