@@ -64,7 +64,21 @@ La clé ne doit jamais être committée dans le dépôt : le fichier `.env` est
 ### Exemples d'utilisation
 
 ```sh
-run-diagnostic "analyse des horloges PTP"
-logs
-chat "Quels paquets GOOSE sont suspects?"
+python cli_chat.py run-diagnostic -i eth0
+python cli_chat.py logs
+python cli_chat.py chat
+```
+
+#### Exemple complet
+
+```sh
+# 1. Lancer un diagnostic PTP et générer les logs
+python cli_chat.py run-diagnostic -i eth0 -t 30
+
+# 2. Afficher les logs
+python cli_chat.py logs
+
+# 3. Ouvrir une conversation avec le modèle
+python cli_chat.py chat
+> Quels paquets GOOSE sont suspects ?
 ```
