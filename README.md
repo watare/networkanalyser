@@ -42,8 +42,10 @@ sudo iec61850-diag -i eth0
 
 ```sh
 pip install -r requirements.txt
-pip install openai
 ```
+
+Seules les bibliothèques listées dans `requirements.txt` sont nécessaires au
+fonctionnement de `cli_chat.py` ; le paquet `openai` n'est pas requis.
 
 ### Configuration de l'environnement
 
