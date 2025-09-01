@@ -1,0 +1,4 @@
+# Pas de dépendances pip
+# Dépendances système :
+#   sudo apt-get install linuxptp python3-venv
+
