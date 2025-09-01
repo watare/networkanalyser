@@ -31,6 +31,8 @@ OPENROUTER_API_KEY=votre_cle
 ```
 
 Le fichier `.env` est utilisé par `cli_chat.py` et n'est pas commité dans le dépôt.
+Il est automatiquement chargé s'il est présent dans le même dossier que le script
+(par exemple `/opt/ptp-diag/.env`).
 
 ## Utilisation
 
@@ -60,13 +62,8 @@ fonctionnement de `cli_chat.py` ; le paquet `openai` n'est pas requis.
    echo "OPENROUTER_API_KEY=\"votre_clé\"" > .env
    ```
 
-2. Charger les variables dans votre session :
-
-   ```sh
-   export $(grep -v '^#' .env | xargs)
-   ```
-
-La clé ne doit jamais être committée dans le dépôt : le fichier `.env` est ignoré par Git.
+2. La clé ne doit jamais être committée dans le dépôt : le fichier `.env` est ignoré
+   par Git et chargé automatiquement par `ptp-chat`.
 
 ### Exemples d'utilisation
 

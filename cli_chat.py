@@ -15,6 +15,7 @@ import logging
 import os
 import subprocess
 import sys
+from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -22,7 +23,9 @@ import requests
 
 # ---------- Environment / constants ----------
 
-load_dotenv()
+_ENV_FILE = Path(__file__).resolve().parent / ".env"
+if not load_dotenv(_ENV_FILE):
+    load_dotenv()
 
 LOG_FILE = "diagnostic.log"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
